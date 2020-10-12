@@ -4,16 +4,32 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import com.ph.grib2tools.grib2file.GribFile;
-import com.ph.grib2tools.grib2file.GribSection1;
-import com.ph.grib2tools.grib2file.RandomAccessGribFile;
-import com.ph.grib2tools.grib2file.griddefinition.GridDefinitionTemplate30;
-import com.ph.grib2tools.grib2file.productdefinition.ProductDefinitionTemplate4x;
+
+import com.google.common.collect.Sets;
+import ucar.coord.Coordinate;
+import ucar.coord.CoordinateRuntime;
+import ucar.ma2.Array;
+import ucar.ma2.InvalidRangeException;
+import ucar.nc2.Attribute;
+import ucar.nc2.NetcdfFile;
+import ucar.nc2.Variable;
+import ucar.nc2.dataset.CoordinateAxis;
+import ucar.nc2.dataset.CoordinateSystem;
+import ucar.nc2.dataset.NetcdfDataset;
+import ucar.nc2.dt.GridCoordSystem;
+import ucar.nc2.dt.grid.GridCoordSys;
+import ucar.nc2.grib.collection.Grib2Iosp;
+import ucar.nc2.iosp.IOServiceProvider;
+import ucar.nc2.time.CalendarDate;
+import ucar.unidata.io.RandomAccessFile;
+
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Formatter;
+import java.util.List;
 import java.util.Scanner;
 
 public class GRIB2FileTest {
@@ -26,111 +42,59 @@ public class GRIB2FileTest {
         }
 
 	public static void main(String[] args) throws IOException {
-		
-		/*if (args.length < 1) {
-			System.out.println("Syntax: java GRIB2FileTest <filename> <structureid (optional)>");
-			return;
-		}*/
 
-		// Name of the GRIB2 file
-		String filename = "format.grib";
-		Scanner scanner = new Scanner(System.in);
-                int scelta=0;
-                
-                //Creazione del file log
-                FileWriter log = new FileWriter("log.txt", true);
-                DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-                Date date = new Date(); //2019/04/26 09:29:43
-                
-                //Applet usata per ricavare il nome dell'utente che sta usando l'applicazione al momento dell'esecuzione
-                com.sun.security.auth.module.NTSystem NTSystem = new com.sun.security.auth.module.NTSystem();
-                System.out.println(NTSystem.getName());
-                
-                String info = NTSystem.getName() + " sta lavorando sul file " + filename + " in data: " +dateFormat.format(date) ;
-                log.write(info + "\r\n");
-                log.write("---------------------------\r\n\r\n");
-		
-                //Definisce quante strutture del file Grib vogliono essere non analizzate dal programma
-		int numskip;
-		try {
-			numskip = Integer.parseInt(args[1]);
-		} catch (Exception e) {
-			numskip = 0;
-		}
-				
-                //Id della griglia, possono essere contenute diverse griglie (Guarda sezioni 5-7)
-		int gridid = 0;
-		
-		System.out.println("Reading file " + filename + ", file structure " + numskip + ":");
-                System.getProperty("user.name");
-		try {
+        String pathfile = "./format.grib";
 
-			//Apro il file e lo leggo
-			InputStream inputstream;
-			inputstream = Files.newInputStream(Paths.get(filename));
-			RandomAccessGribFile gribFile = new RandomAccessGribFile("testdata", filename);
-			gribFile.importFromStream(inputstream, numskip);
-			
-			//Prendo informazioni rigurdanti data, orario del file
-			GribSection1 section1 = gribFile.getSection1();
-			System.out.println("Date: " + String.format("%02d", section1.day) + "." + String.format("%02d", section1.month) + "." + section1.year);
-			System.out.println("Time: " + String.format("%02d", section1.hour) + ":" + String.format("%02d", section1.minute) + "." + String.format("%02d", section1.second));
-			System.out.println("Generating centre: " + section1.generatingCentre);
-                        
-			
-			ProductDefinitionTemplate4x productDefinition = (ProductDefinitionTemplate4x)gribFile.getProductDefinitionTemplate();
-			/*System.out.println("Forecast time: " + productDefinition.forecastTime);
-			System.out.println("Parameter category: " + productDefinition.parameterCategory);
-			System.out.println("Parameter number: " + productDefinition.parameterNumber);*/
+//Create RandomAccessFile
+        RandomAccessFile gribfile = null;
 
-			//Vado ad esaminare informazioni rigurardanti l'area di copertura del file in termini di longitudine e latitudine
-			GridDefinitionTemplate30 gridDefinition = (GridDefinitionTemplate30)gribFile.getGridDefinitionTemplate();
-			System.out.println("Covered area:");
-			System.out.println("   from (latitude, longitude): " + GribFile.unitsToDeg(gridDefinition.firstPointLat) + ", " + GribFile.unitsToDeg(gridDefinition.firstPointLon));		
-			System.out.println("   to: (latitude, longitude): " + GribFile.unitsToDeg(gridDefinition.lastPointLat) + ", " + GribFile.unitsToDeg(gridDefinition.lastPointLon));		
-                        
-                        //ciclo dowhile finchè non digita 0 alla richiesta di altri valori (Guarda prima della condizione while)
-                        do{
-                        //Prendo i valori chiedendoli all'utente       
-                            System.out.println("Inserisci la latitudine: ");
-                            double latitude = scanner.nextDouble();
-                            
-                            System.out.println("Inserisci la longitudine: ");
-                            double longitude = scanner.nextDouble();
-                            
-			//Prendo i valori senza chiederli all'utente            
-                        // RANGE VALORI FUNZIONANTI LAT/LONG
-			/*double latitude = 44.3; //43.7 - 44.3 lat
-			double longitude = 10.3; //0.0 - 43.0 lon*/
-                        
-			//System.out.println("Value at (" + latitude + ", " + longitude + "): " + gribFile.interpolateValueAtLocation(gridid, latitude, longitude));
-			float res = convKeltoC(gribFile.interpolateValueAtLocation(gridid, latitude, longitude));
-                        
-                        //stampo a schermo il risultato sia in °C che in °K
-                        System.out.print("Value at (" + latitude + ", " + longitude + "): ");
-                        System.out.printf("%.2f",res);
-                        System.out.println("°C");
-                        System.out.println("Value at (" + latitude + ", " + longitude + "): " + gribFile.interpolateValueAtLocation(gridid, latitude, longitude) + " °K");
-                        
-                        //scrivo nel file le informazioni
-                        info = "Viene richiesto dall'utente informazioni nel punto: " + latitude + ", " + longitude + "\n";
-                        log.write(info + "\r\n");
-                        info = "Si restituisce come responso: " + res + "°C e " + gribFile.interpolateValueAtLocation(gridid, latitude, longitude) + " °K";
-                        log.write(info + "\r\n");
-                        
-                        //se 1 allora rinizia il ciclo chiedendo all'utente i dati per continuare, se 0 allora esce
-                        System.out.println("Vuoi osservare anche un altra parte della mappa? (1/0)");
-                        scelta=scanner.nextInt();
-                        }while(scelta!=0);
-                        } catch (Exception e) {
-			e.printStackTrace();
-		}
-                //chiudo il file
-                log.write("\r\n---------------------------\r\n\r\n");
-                log.close();
-	}
+        try {
+            gribfile = new ucar.unidata.io.RandomAccessFile(pathfile, "rw");
+            final NetcdfFile netcdfFile = NetcdfFile.open(pathfile);
+            System.out.println(netcdfFile.getDetailInfo());
+            NetcdfDataset netcdfDataset = NetcdfDataset.wrap(netcdfFile, Sets.newHashSet(NetcdfDataset.Enhance.CoordSystems));
+            List<CoordinateSystem> coordinateSystems = netcdfDataset.getCoordinateSystems();
+
+            final ucar.nc2.grib.collection.Grib2Iosp iosp = (Grib2Iosp) netcdfFile.getIosp();
+            final Object gribCustomizer = iosp.getGribCustomizer();
+
+
+            final List<Variable> variables = netcdfFile.getVariables();
+            for (Variable v:
+                 variables) {
+                System.out.println(v.getNameAndDimensions());
+            }
+            boolean heightAxisFound = false;
+            System.out.println("Coordinate system");
+            for (CoordinateSystem coordinateSystem : coordinateSystems) {
+                final String desc = coordinateSystem.toString();
+                
+                System.out.println(desc);
+
+            }
+            System.out.println();
+            //final Variable temp = netcdfFile.findVariable("Temperature_height_above_ground");
+            //final Variable prec = netcdfFile.findVariable("Total_precipitation_surface_6_Hour_Accumulation");
+            final Variable temp = netcdfFile.findVariable("Temperature_height_above_ground_Mixed_intervals_Average");
+            final Variable prec = netcdfFile.findVariable("Total_precipitation_rate_surface_Mixed_intervals_Accumulation");
+            for (CoordinateSystem coordinateSystem : coordinateSystems) {
+                if(coordinateSystem.isCoordinateSystemFor(prec) && coordinateSystem.isGeoReferencing()){
+                    System.out.println("Precipitazione");
+                    System.out.println();
+                }else if(coordinateSystem.isCoordinateSystemFor(temp) && coordinateSystem.isGeoReferencing()){
+                    System.out.println("Temperatura");
+
+
+
+                }
+
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+    }
 }
-
-// RANGE VALORI FUNZIONANTI LAT/LONG
-//43.7 - 44.3 lat
-//0.0 - 43.0 lon

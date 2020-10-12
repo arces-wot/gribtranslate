@@ -139,3 +139,36 @@ Si restituisce come responso: -1.987738°C e 271.16226 °K
 
 ---------------------------
 
+reluc sta lavorando sul file format.grib in data: 2019/06/13 12:44:20
+---------------------------
+
+Viene richiesto dall'utente informazioni nel punto: 44.0, 10.0
+
+Si restituisce come responso: -1.9848694°C e 271.16513 °K
+
+---------------------------
+
+reluc sta lavorando sul file testPrevisioni.grib in data: 2019/06/13 14:47:43
+---------------------------
+
+
+---------------------------
+
+reluc sta lavorando sul file testPrevisioni.grib in data: 2019/06/13 14:48:23
+---------------------------
+
+
+---------------------------
+
+reluc sta lavorando sul file testPrevisioni.grib in data: 2019/06/13 14:49:48
+---------------------------
+
+
+---------------------------
+
+reluc sta lavorando sul file testPrevisioni.grib in data: 2019/06/13 15:31:54
+---------------------------
+
+
+---------------------------
+
